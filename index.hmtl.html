@@ -1,0 +1,1921 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sepsis Recognition & Management – Interactive Teaching Simulation</title>
+<style>
+  :root {
+    --navy: #0D2137;
+    --navy-mid: #1A3A5C;
+    --teal: #0D9488;
+    --teal-light: #5DCAA5;
+    --teal-pale: #E1F5EE;
+    --amber: #D97706;
+    --amber-pale: #FEF3C7;
+    --red: #DC2626;
+    --red-pale: #FEE2E2;
+    --green: #16A34A;
+    --green-pale: #DCFCE7;
+    --slate: #64748B;
+    --white: #FFFFFF;
+    --off-white: #F8FAFC;
+    --border: #E2E8F0;
+    --text: #1E293B;
+    --text-muted: #64748B;
+    --purple: #7C3AED;
+    --purple-pale: #EDE9FE;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--off-white);
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  /* ── Header ── */
+  .sim-header {
+    background: var(--navy);
+    color: white;
+    padding: 0;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.25);
+  }
+  .header-top {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 28px;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+  }
+  .header-badge {
+    background: var(--teal);
+    color: white;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    padding: 4px 10px;
+    border-radius: 4px;
+    text-transform: uppercase;
+  }
+  .header-title { font-size: 17px; font-weight: 600; flex: 1; }
+  .header-sub { font-size: 12px; color: rgba(255,255,255,0.55); }
+  .nice-tag {
+    background: rgba(13,148,136,0.2);
+    border: 1px solid rgba(13,148,136,0.4);
+    color: #5DCAA5;
+    font-size: 11px;
+    padding: 3px 10px;
+    border-radius: 4px;
+    font-weight: 600;
+  }
+
+  /* Progress bar */
+  .progress-bar-wrap {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    padding: 0 28px;
+    background: var(--navy-mid);
+  }
+  .prog-step {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 8px 4px;
+    cursor: default;
+    position: relative;
+    transition: opacity 0.2s;
+  }
+  .prog-step .dot {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    border: 2px solid rgba(255,255,255,0.2);
+    background: rgba(255,255,255,0.05);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    color: rgba(255,255,255,0.3);
+    font-weight: 700;
+    transition: all 0.3s;
+    margin-bottom: 4px;
+  }
+  .prog-step.active .dot {
+    background: var(--teal);
+    border-color: var(--teal);
+    color: white;
+    box-shadow: 0 0 0 4px rgba(13,148,136,0.25);
+  }
+  .prog-step.done .dot {
+    background: var(--green);
+    border-color: var(--green);
+    color: white;
+  }
+  .prog-step .prog-label {
+    font-size: 9px;
+    color: rgba(255,255,255,0.3);
+    text-align: center;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    font-weight: 600;
+  }
+  .prog-step.active .prog-label { color: var(--teal-light); }
+  .prog-step.done .prog-label { color: rgba(255,255,255,0.55); }
+  .prog-connector {
+    height: 1px;
+    background: rgba(255,255,255,0.15);
+    flex: 0.3;
+    margin-bottom: 14px;
+  }
+
+  /* ── Main layout ── */
+  .sim-body {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 32px 24px 80px;
+  }
+
+  /* Screens */
+  .screen { display: none; }
+  .screen.active { display: block; animation: fadeIn 0.35s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* ── Cards ── */
+  .card {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px 28px;
+    margin-bottom: 20px;
+  }
+  .card-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  .card-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+  .card-title { font-size: 16px; font-weight: 700; color: var(--navy); }
+  .card-sub { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+
+  /* ── Scenario intro ── */
+  .scenario-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+  @media (max-width: 720px) { .scenario-grid { grid-template-columns: 1fr; } }
+
+  .vital-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    border-radius: 6px;
+    margin-bottom: 6px;
+    background: var(--off-white);
+    border: 1px solid var(--border);
+  }
+  .vital-row.alert { background: var(--red-pale); border-color: rgba(220,38,38,0.25); }
+  .vital-label { font-size: 12px; font-weight: 600; color: var(--text-muted); }
+  .vital-value { font-size: 15px; font-weight: 700; color: var(--text); }
+  .vital-row.alert .vital-value { color: var(--red); }
+  .vital-row.alert .vital-label { color: var(--red); }
+  .news-total {
+    background: var(--red);
+    color: white;
+    border-radius: 8px;
+    padding: 12px 16px;
+    text-align: center;
+    margin-top: 12px;
+  }
+  .news-num { font-size: 32px; font-weight: 800; line-height: 1; }
+  .news-label { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; opacity: 0.85; margin-top: 2px; }
+
+  .scenario-text { font-size: 14px; line-height: 1.75; color: var(--text); }
+  .scenario-text strong { color: var(--navy); font-weight: 700; }
+
+  .scenario-banner {
+    background: var(--navy);
+    color: white;
+    border-radius: 10px;
+    padding: 18px 22px;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+  }
+  .banner-emoji { font-size: 28px; flex-shrink: 0; }
+  .banner-title { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
+  .banner-body { font-size: 13px; color: rgba(255,255,255,0.75); line-height: 1.6; }
+
+  /* ── NICE definition box ── */
+  .nice-definition {
+    background: var(--navy-mid);
+    border-radius: 10px;
+    padding: 20px 24px;
+    margin: 20px 0;
+    border-left: 4px solid var(--teal);
+  }
+  .nice-definition blockquote {
+    font-size: 16px;
+    font-style: italic;
+    color: rgba(255,255,255,0.9);
+    line-height: 1.7;
+    margin: 0;
+  }
+  .nice-definition cite {
+    display: block;
+    margin-top: 10px;
+    font-size: 12px;
+    color: var(--teal-light);
+    font-style: normal;
+  }
+
+  /* ── Decision questions ── */
+  .question-block {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 20px;
+  }
+  .question-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--teal);
+    margin-bottom: 8px;
+  }
+  .question-text {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--navy);
+    margin-bottom: 20px;
+    line-height: 1.4;
+  }
+  .options-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  @media (max-width: 600px) { .options-grid { grid-template-columns: 1fr; } }
+  .option-btn {
+    background: var(--white);
+    border: 2px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 18px;
+    text-align: left;
+    cursor: pointer;
+    transition: all 0.18s;
+    position: relative;
+  }
+  .option-btn:hover { border-color: var(--teal); background: var(--teal-pale); transform: translateY(-1px); }
+  .option-btn .opt-letter {
+    display: inline-block;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: var(--off-white);
+    border: 2px solid var(--border);
+    text-align: center;
+    line-height: 20px;
+    font-size: 12px;
+    font-weight: 700;
+    margin-bottom: 8px;
+    color: var(--slate);
+  }
+  .option-btn .opt-text { font-size: 14px; color: var(--text); line-height: 1.5; font-weight: 500; }
+  .option-btn.correct { border-color: var(--green); background: var(--green-pale); }
+  .option-btn.correct .opt-letter { background: var(--green); border-color: var(--green); color: white; }
+  .option-btn.wrong { border-color: var(--red); background: var(--red-pale); }
+  .option-btn.wrong .opt-letter { background: var(--red); border-color: var(--red); color: white; }
+  .option-btn.dimmed { opacity: 0.4; pointer-events: none; }
+
+  /* Feedback panel */
+  .feedback-panel {
+    display: none;
+    border-radius: 10px;
+    padding: 18px 20px;
+    margin-top: 16px;
+    border-left: 5px solid;
+  }
+  .feedback-panel.show { display: block; animation: fadeIn 0.3s ease; }
+  .feedback-panel.success { background: var(--green-pale); border-color: var(--green); }
+  .feedback-panel.error { background: var(--red-pale); border-color: var(--red); }
+  .feedback-panel.info { background: var(--teal-pale); border-color: var(--teal); }
+  .feedback-title { font-size: 14px; font-weight: 700; margin-bottom: 6px; }
+  .feedback-panel.success .feedback-title { color: #166534; }
+  .feedback-panel.error .feedback-title { color: #991B1B; }
+  .feedback-panel.info .feedback-title { color: #0F6E56; }
+  .feedback-body { font-size: 13px; line-height: 1.7; }
+  .feedback-panel.success .feedback-body { color: #166534; }
+  .feedback-panel.error .feedback-body { color: #991B1B; }
+  .feedback-panel.info .feedback-body { color: #0F6E56; }
+  .nice-ref { font-size: 11px; margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(0,0,0,0.1); opacity: 0.8; font-style: italic; }
+
+  /* ── Sepsis Six simulation ── */
+  .sepsis-six-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 14px;
+    margin-top: 16px;
+  }
+  @media (max-width: 780px) { .sepsis-six-grid { grid-template-columns: 1fr 1fr; } }
+  @media (max-width: 480px) { .sepsis-six-grid { grid-template-columns: 1fr; } }
+
+  .six-card {
+    border: 2px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+  }
+  .six-card:hover { border-color: var(--teal); transform: translateY(-2px); }
+  .six-card.selected { border-color: var(--teal); background: var(--teal-pale); }
+  .six-card.selected.take { border-color: var(--amber); background: var(--amber-pale); }
+  .six-card.wrong-select { border-color: var(--red); background: var(--red-pale); animation: shake 0.3s; }
+  @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-4px)} 75%{transform:translateX(4px)} }
+  .six-type {
+    display: inline-block;
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    border-radius: 4px;
+    margin-bottom: 10px;
+  }
+  .six-type.give { background: var(--teal); color: white; }
+  .six-type.take { background: var(--amber); color: white; }
+  .six-title { font-size: 15px; font-weight: 700; color: var(--navy); margin-bottom: 4px; }
+  .six-desc { font-size: 12px; color: var(--text-muted); line-height: 1.5; }
+  .six-check {
+    position: absolute;
+    top: 10px;
+    right: 12px;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--teal);
+    color: white;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 800;
+  }
+  .six-card.selected .six-check { display: flex; }
+  .six-card.selected.take .six-check { background: var(--amber); }
+
+  .action-timer {
+    background: var(--navy);
+    color: white;
+    border-radius: 10px;
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+  }
+  .timer-label { font-size: 12px; color: rgba(255,255,255,0.6); text-transform: uppercase; letter-spacing: 1px; }
+  .timer-val { font-size: 28px; font-weight: 800; color: var(--teal-light); font-variant-numeric: tabular-nums; }
+  .timer-val.urgent { color: #FCA5A5; }
+  .timer-note { font-size: 12px; color: rgba(255,255,255,0.5); max-width: 260px; line-height: 1.5; }
+
+  /* ── SBAR ── */
+  .sbar-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  @media (max-width: 640px) { .sbar-grid { grid-template-columns: 1fr; } }
+  .sbar-card {
+    border-radius: 10px;
+    padding: 18px;
+    border: 1px solid var(--border);
+    background: var(--white);
+  }
+  .sbar-letter {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    font-size: 20px;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 10px;
+    color: white;
+  }
+  .sbar-card:nth-child(1) .sbar-letter { background: var(--teal); }
+  .sbar-card:nth-child(2) .sbar-letter { background: var(--navy-mid); }
+  .sbar-card:nth-child(3) .sbar-letter { background: var(--amber); }
+  .sbar-card:nth-child(4) .sbar-letter { background: var(--red); }
+  .sbar-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); margin-bottom: 6px; }
+  .sbar-content { font-size: 13px; line-height: 1.65; color: var(--text); font-style: italic; }
+  textarea.sbar-input {
+    width: 100%;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-size: 13px;
+    font-family: inherit;
+    resize: vertical;
+    margin-top: 8px;
+    color: var(--text);
+    background: var(--off-white);
+    line-height: 1.6;
+  }
+  textarea.sbar-input:focus { outline: none; border-color: var(--teal); background: white; }
+
+  /* ── Pathophysiology cascade ── */
+  .cascade {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    margin: 16px 0;
+  }
+  .cascade-step {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    padding: 14px 0;
+    border-bottom: 1px dashed var(--border);
+    cursor: pointer;
+    transition: background 0.15s;
+    border-radius: 8px;
+    padding-left: 8px;
+  }
+  .cascade-step:last-child { border-bottom: none; }
+  .cascade-step:hover { background: var(--off-white); }
+  .cascade-num {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 800;
+    flex-shrink: 0;
+    color: white;
+  }
+  .cascade-text { flex: 1; }
+  .cascade-title { font-size: 14px; font-weight: 700; color: var(--navy); margin-bottom: 3px; }
+  .cascade-body { font-size: 13px; color: var(--text-muted); line-height: 1.6; display: none; }
+  .cascade-step.expanded .cascade-body { display: block; animation: fadeIn 0.2s; }
+  .cascade-joan {
+    display: none;
+    font-size: 12px;
+    color: var(--teal);
+    font-weight: 600;
+    margin-top: 6px;
+    padding: 6px 10px;
+    background: var(--teal-pale);
+    border-radius: 6px;
+  }
+  .cascade-step.expanded .cascade-joan { display: block; }
+  .expand-hint { font-size: 11px; color: var(--text-muted); margin-top: 3px; }
+
+  /* ── Red flags checklist ── */
+  .flag-list { display: flex; flex-direction: column; gap: 8px; }
+  .flag-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--white);
+    cursor: pointer;
+    transition: all 0.15s;
+    user-select: none;
+  }
+  .flag-item:hover { border-color: var(--teal); }
+  .flag-check {
+    width: 22px;
+    height: 22px;
+    border-radius: 5px;
+    border: 2px solid var(--border);
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+  }
+  .flag-item.checked .flag-check { background: var(--teal); border-color: var(--teal); color: white; }
+  .flag-text { font-size: 14px; color: var(--text); flex: 1; }
+  .flag-item.checked .flag-text { color: var(--teal); font-weight: 600; }
+  .flag-joan { font-size: 11px; color: var(--text-muted); margin-left: auto; display: none; }
+  .flag-item.checked.joan-applies .flag-joan { display: inline; color: var(--red); font-weight: 700; }
+  .flag-score-display {
+    background: var(--navy);
+    color: white;
+    border-radius: 10px;
+    padding: 14px 20px;
+    margin-top: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .flag-score-num { font-size: 36px; font-weight: 800; color: var(--teal-light); }
+  .flag-score-label { font-size: 13px; color: rgba(255,255,255,0.7); }
+
+  /* ── Reflection ── */
+  .reflection-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+  @media (max-width: 640px) { .reflection-grid { grid-template-columns: 1fr; } }
+
+  .reflection-model {
+    background: var(--purple-pale);
+    border: 1px solid rgba(124,58,237,0.2);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 20px;
+  }
+  .reflection-model h3 { font-size: 15px; font-weight: 700; color: var(--purple); margin-bottom: 12px; }
+  .gibbs-ring {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  .gibbs-step {
+    background: white;
+    border: 1px solid rgba(124,58,237,0.2);
+    border-radius: 20px;
+    padding: 5px 14px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--purple);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .gibbs-step:hover, .gibbs-step.active { background: var(--purple); color: white; }
+  .gibbs-content { display: none; font-size: 13px; line-height: 1.7; color: var(--text); }
+  .gibbs-content.show { display: block; animation: fadeIn 0.2s; }
+  .reflect-prompt { font-size: 13px; color: var(--text-muted); margin-bottom: 8px; font-weight: 500; }
+  textarea.reflect-input {
+    width: 100%;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-size: 13px;
+    font-family: inherit;
+    resize: vertical;
+    min-height: 80px;
+    color: var(--text);
+    background: var(--off-white);
+    line-height: 1.6;
+  }
+  textarea.reflect-input:focus { outline: none; border-color: var(--purple); background: white; }
+
+  /* ── Debrief ── */
+  .debrief-outcome {
+    background: var(--navy);
+    color: white;
+    border-radius: 12px;
+    padding: 24px 28px;
+    margin-bottom: 20px;
+    text-align: center;
+  }
+  .outcome-emoji { font-size: 48px; margin-bottom: 12px; }
+  .outcome-title { font-size: 22px; font-weight: 800; color: var(--teal-light); margin-bottom: 8px; }
+  .outcome-body { font-size: 14px; color: rgba(255,255,255,0.75); line-height: 1.7; max-width: 540px; margin: 0 auto; }
+
+  .score-card {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin-bottom: 16px;
+  }
+  .score-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 14px;
+  }
+  .score-row:last-child { border-bottom: none; }
+  .score-item { font-weight: 500; color: var(--text); }
+  .score-badge {
+    font-size: 12px;
+    font-weight: 700;
+    padding: 4px 12px;
+    border-radius: 20px;
+  }
+  .score-badge.pass { background: var(--green-pale); color: var(--green); }
+  .score-badge.warn { background: var(--amber-pale); color: var(--amber); }
+  .score-badge.fail { background: var(--red-pale); color: var(--red); }
+
+  .debrief-points {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    margin-bottom: 20px;
+  }
+  @media (max-width: 640px) { .debrief-points { grid-template-columns: 1fr; } }
+  .debrief-point {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+  }
+  .debrief-point .dp-icon { font-size: 22px; margin-bottom: 8px; }
+  .debrief-point .dp-title { font-size: 13px; font-weight: 700; color: var(--navy); margin-bottom: 6px; }
+  .debrief-point .dp-body { font-size: 12px; color: var(--text-muted); line-height: 1.6; }
+
+  /* ── Signposting ── */
+  .signpost-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 14px;
+  }
+  @media (max-width: 720px) { .signpost-grid { grid-template-columns: 1fr 1fr; } }
+  @media (max-width: 480px) { .signpost-grid { grid-template-columns: 1fr; } }
+  .signpost-card {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    background: var(--white);
+    transition: all 0.15s;
+  }
+  .signpost-card:hover { border-color: var(--teal); box-shadow: 0 4px 16px rgba(13,148,136,0.1); }
+  .signpost-card .sp-type {
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    border-radius: 4px;
+    display: inline-block;
+    margin-bottom: 10px;
+  }
+  .signpost-card .sp-title { font-size: 14px; font-weight: 700; color: var(--navy); margin-bottom: 6px; }
+  .signpost-card .sp-body { font-size: 12px; color: var(--text-muted); line-height: 1.6; margin-bottom: 12px; }
+  .signpost-card .sp-link {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--teal);
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .signpost-card .sp-link:hover { text-decoration: underline; }
+
+  /* ── References ── */
+  .references-section { background: var(--white); border: 1px solid var(--border); border-radius: 12px; padding: 24px 28px; }
+  .references-section h3 { font-size: 18px; font-weight: 700; color: var(--navy); margin-bottom: 20px; padding-bottom: 14px; border-bottom: 1px solid var(--border); }
+  .ref-item {
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+    line-height: 1.7;
+    color: var(--text);
+  }
+  .ref-item:last-child { border-bottom: none; }
+  .ref-item span.ref-num { font-weight: 700; color: var(--teal); margin-right: 8px; }
+  .ref-item a { color: var(--teal); text-decoration: none; }
+  .ref-item a:hover { text-decoration: underline; }
+
+  /* ── Navigation buttons ── */
+  .nav-buttons {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 28px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+    gap: 12px;
+  }
+  .btn-primary {
+    background: var(--teal);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 12px 24px;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .btn-primary:hover { background: #0B7A70; transform: translateY(-1px); }
+  .btn-primary:disabled { background: var(--text-muted); cursor: not-allowed; transform: none; }
+  .btn-secondary {
+    background: transparent;
+    color: var(--text-muted);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 20px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .btn-secondary:hover { border-color: var(--text-muted); color: var(--text); }
+
+  /* ── Highlight pill ── */
+  .highlight-pill {
+    display: inline-block;
+    background: var(--teal-pale);
+    color: var(--teal);
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 20px;
+    margin-left: 6px;
+  }
+  .highlight-pill.red { background: var(--red-pale); color: var(--red); }
+  .highlight-pill.amber { background: var(--amber-pale); color: var(--amber); }
+
+  /* ── Alert banner ── */
+  .alert-banner {
+    border-radius: 10px;
+    padding: 14px 18px;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .alert-banner.red { background: var(--red-pale); border-left: 4px solid var(--red); }
+  .alert-banner.amber { background: var(--amber-pale); border-left: 4px solid var(--amber); }
+  .alert-banner.teal { background: var(--teal-pale); border-left: 4px solid var(--teal); }
+  .alert-banner .ab-icon { font-size: 18px; flex-shrink: 0; }
+  .alert-banner .ab-text { font-size: 13px; line-height: 1.65; }
+  .alert-banner.red .ab-text { color: #991B1B; }
+  .alert-banner.amber .ab-text { color: #92400E; }
+  .alert-banner.teal .ab-text { color: #0F6E56; }
+
+  /* ── Section heading ── */
+  .section-heading {
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--teal);
+    margin-bottom: 6px;
+  }
+  .section-title {
+    font-size: 26px;
+    font-weight: 800;
+    color: var(--navy);
+    margin-bottom: 6px;
+    line-height: 1.25;
+  }
+  .section-intro {
+    font-size: 15px;
+    color: var(--text-muted);
+    margin-bottom: 24px;
+    line-height: 1.65;
+    max-width: 700px;
+  }
+
+  /* Welcome screen */
+  .welcome-hero {
+    background: var(--navy);
+    border-radius: 16px;
+    padding: 44px 40px;
+    color: white;
+    margin-bottom: 28px;
+    position: relative;
+    overflow: hidden;
+  }
+  .welcome-hero::before {
+    content: '';
+    position: absolute;
+    right: -60px;
+    top: -60px;
+    width: 300px;
+    height: 300px;
+    border-radius: 50%;
+    background: rgba(13,148,136,0.12);
+  }
+  .welcome-hero::after {
+    content: '';
+    position: absolute;
+    right: 40px;
+    top: 40px;
+    width: 180px;
+    height: 180px;
+    border-radius: 50%;
+    background: rgba(13,148,136,0.08);
+  }
+  .welcome-badge {
+    display: inline-block;
+    background: rgba(13,148,136,0.2);
+    border: 1px solid rgba(13,148,136,0.4);
+    color: var(--teal-light);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    padding: 5px 14px;
+    border-radius: 20px;
+    margin-bottom: 20px;
+    text-transform: uppercase;
+  }
+  .welcome-title { font-size: 32px; font-weight: 800; line-height: 1.2; margin-bottom: 12px; color: white; max-width: 600px; }
+  .welcome-title span { color: var(--teal-light); }
+  .welcome-sub { font-size: 16px; color: rgba(255,255,255,0.65); line-height: 1.7; max-width: 540px; margin-bottom: 28px; }
+  .welcome-stats {
+    display: flex;
+    gap: 28px;
+    flex-wrap: wrap;
+  }
+  .welcome-stat { text-align: left; }
+  .welcome-stat .ws-num { font-size: 22px; font-weight: 800; color: var(--teal-light); }
+  .welcome-stat .ws-label { font-size: 12px; color: rgba(255,255,255,0.5); margin-top: 2px; }
+
+  .welcome-features {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    gap: 14px;
+    margin-bottom: 28px;
+  }
+  .welcome-feature {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+  }
+  .wf-icon { font-size: 22px; margin-bottom: 8px; }
+  .wf-title { font-size: 14px; font-weight: 700; color: var(--navy); margin-bottom: 4px; }
+  .wf-body { font-size: 12px; color: var(--text-muted); line-height: 1.5; }
+
+  /* Instructor notes */
+  .instructor-note {
+    background: var(--amber-pale);
+    border: 1px solid rgba(217,119,6,0.25);
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin-top: 16px;
+    margin-bottom: 4px;
+    font-size: 12px;
+    color: #92400E;
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  .instructor-note strong { display: block; margin-bottom: 2px; }
+
+  /* Collapsible instructor panel */
+  .instructor-toggle {
+    background: none;
+    border: 1px dashed var(--amber);
+    border-radius: 6px;
+    color: var(--amber);
+    font-size: 12px;
+    font-weight: 600;
+    padding: 6px 14px;
+    cursor: pointer;
+    margin-top: 12px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .instructor-panel { display: none; }
+  .instructor-panel.open { display: block; }
+
+  /* Footer */
+  .sim-footer {
+    text-align: center;
+    padding: 24px;
+    font-size: 11px;
+    color: var(--text-muted);
+    border-top: 1px solid var(--border);
+    margin-top: 40px;
+  }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<header class="sim-header">
+  <div class="header-top">
+    <span class="header-badge">Simulation</span>
+    <div>
+      <div class="header-title">Sepsis Recognition &amp; Management</div>
+      <div class="header-sub">Interactive Teaching Session · Pre-Registration Nursing</div>
+    </div>
+    <span class="nice-tag">NICE NG51 · 2024</span>
+  </div>
+  <div class="progress-bar-wrap" id="progressBar">
+    <!-- Steps injected by JS -->
+  </div>
+</header>
+
+<main class="sim-body">
+
+  <!-- ════════════════════════════════════════════
+       SCREEN 0 · WELCOME
+  ════════════════════════════════════════════ -->
+  <div class="screen active" id="screen-0">
+    <div class="welcome-hero">
+      <div class="welcome-badge">🏥 Clinical Simulation</div>
+      <div class="welcome-title">When Cellulitis<br><span>Becomes Sepsis</span></div>
+      <div class="welcome-sub">An interactive simulation designed around NICE guideline NG51. You will follow a real patient through deterioration, make clinical decisions, apply the Sepsis Six, and reflect on your practice.</div>
+      <div class="welcome-stats">
+        <div class="welcome-stat"><div class="ws-num">10 min</div><div class="ws-label">Estimated time</div></div>
+        <div class="welcome-stat"><div class="ws-num">8 stages</div><div class="ws-label">Scenario + reflection</div></div>
+        <div class="welcome-stat"><div class="ws-num">NG51</div><div class="ws-label">NICE guideline basis</div></div>
+      </div>
+    </div>
+
+    <div class="welcome-features">
+      <div class="welcome-feature">
+        <div class="wf-icon">🩺</div>
+        <div class="wf-title">Patient scenario</div>
+        <div class="wf-body">Real clinical case: Joan Evans, 68F, cellulitis → septic shock</div>
+      </div>
+      <div class="welcome-feature">
+        <div class="wf-icon">🧩</div>
+        <div class="wf-title">Clinical decisions</div>
+        <div class="wf-body">Answer questions with immediate NICE-referenced feedback</div>
+      </div>
+      <div class="welcome-feature">
+        <div class="wf-icon">⏱️</div>
+        <div class="wf-title">Sepsis Six simulation</div>
+        <div class="wf-body">Select and apply the correct bundle within 1 hour</div>
+      </div>
+      <div class="welcome-feature">
+        <div class="wf-icon">💬</div>
+        <div class="wf-title">SBAR communication</div>
+        <div class="wf-body">Practise calling for help using structured handover</div>
+      </div>
+      <div class="welcome-feature">
+        <div class="wf-icon">🔄</div>
+        <div class="wf-title">Gibbs reflection</div>
+        <div class="wf-body">Structured reflection prompts mapped to NMC revalidation</div>
+      </div>
+      <div class="welcome-feature">
+        <div class="wf-icon">📚</div>
+        <div class="wf-title">Harvard references</div>
+        <div class="wf-body">Full citations for every claim, ready for academic work</div>
+      </div>
+    </div>
+
+    <div class="alert-banner teal">
+      <span class="ab-icon">📋</span>
+      <div class="ab-text"><strong>Learning outcomes</strong> — By the end you will be able to: (1) Define sepsis using NICE NG51 language; (2) Calculate a NEWS2 score and identify red flags; (3) Apply the Sepsis Six within 1 hour; (4) Explain how cellulitis progresses to sepsis; (5) Use SBAR to escalate urgent concerns; (6) Reflect critically on practice using Gibbs' model.</div>
+    </div>
+
+    <div class="nav-buttons">
+      <div></div>
+      <button class="btn-primary" onclick="goTo(1)">Begin Simulation →</button>
+    </div>
+  </div>
+
+
+  <!-- ════════════════════════════════════════════
+       SCREEN 1 · MEET THE PATIENT
+  ════════════════════════════════════════════ -->
+  <div class="screen" id="screen-1">
+    <div class="section-heading">Stage 1 of 7</div>
+    <div class="section-title">Meet Joan Evans</div>
+    <div class="section-intro">Read the scenario carefully. You are the nurse arriving for the morning shift.</div>
+
+    <div class="scenario-banner">
+      <div class="banner-emoji">🌅</div>
+      <div>
+        <div class="banner-title">07:15 — Ward 7, Bay 4</div>
+        <div class="banner-body">You arrive to take over from the night nurse. She hands you Joan Evans: "She came in yesterday afternoon with cellulitis on her left leg. We gave IV Flucloxacillin at midnight. I'm not sure she's any better…"</div>
+      </div>
+    </div>
+
+    <div class="scenario-grid">
+      <div>
+        <div class="card">
+          <div class="card-header">
+            <div class="card-icon" style="background:#E1F5EE">👩</div>
+            <div>
+              <div class="card-title">Joan Evans</div>
+              <div class="card-sub">68 years old · She / Her</div>
+            </div>
+          </div>
+          <div class="scenario-text">
+            <p style="margin-bottom:10px"><strong>Admission reason:</strong> Hot, red, swollen left lower leg — diagnosed as cellulitis on admission.</p>
+            <p style="margin-bottom:10px"><strong>Past medical history:</strong> Type 2 Diabetes (HbA1c 72 mmol/mol), Hypertension, Peripheral vascular disease</p>
+            <p style="margin-bottom:10px"><strong>Medications:</strong> Metformin 1g BD, Ramipril 5mg OD, Aspirin 75mg OD</p>
+            <p style="margin-bottom:10px"><strong>Allergies:</strong> Penicillin (rash — documented)</p>
+            <p><strong>On examination:</strong> Joan is confused and difficult to rouse. She says she feels "really cold" despite the warm room. The HCA reports: "She just doesn't seem right — she wasn't like this last night."</p>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="card">
+          <div class="card-header">
+            <div class="card-icon" style="background:#FEE2E2">🩺</div>
+            <div>
+              <div class="card-title">Observations — 07:20</div>
+              <div class="card-sub">Your first set of the morning</div>
+            </div>
+          </div>
+          <div class="vital-row alert"><span class="vital-label">Heart rate</span><span class="vital-value">118 bpm ↑</span></div>
+          <div class="vital-row alert"><span class="vital-label">Respiratory rate</span><span class="vital-value">22 /min ↑</span></div>
+          <div class="vital-row alert"><span class="vital-label">SpO₂</span><span class="vital-value">93% on air ↓</span></div>
+          <div class="vital-row alert"><span class="vital-label">Blood pressure</span><span class="vital-value">88 / 52 mmHg ↓</span></div>
+          <div class="vital-row alert"><span class="vital-label">Temperature</span><span class="vital-value">38.9 °C ↑</span></div>
+          <div class="vital-row alert"><span class="vital-label">AVPU</span><span class="vital-value">V — confused</span></div>
+          <div class="vital-row"><span class="vital-label">Blood glucose</span><span class="vital-value">14.2 mmol/L</span></div>
+          <div class="vital-row"><span class="vital-label">Urine output (last 8h)</span><span class="vital-value">120 mL only</span></div>
+          <div class="news-total">
+            <div class="news-num">12</div>
+            <div class="news-label">NEWS2 Score · HIGH RISK</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="instructor-toggle" onclick="toggleInstructor('instr1')">📋 Facilitator note (click to expand)</div>
+    <div class="instructor-panel" id="instr1">
+      <div class="instructor-note">
+        <span>🎓</span>
+        <div><strong>Teaching point:</strong> Pause here. Ask students: "What is your FIRST concern right now?" Take 2–3 responses. Do not confirm or deny — let them sit with the uncertainty. Then advance. Note Joan's penicillin allergy — this will matter for antibiotic choice later.</div>
+      </div>
+    </div>
+
+    <div class="nav-buttons">
+      <button class="btn-secondary" onclick="goTo(0)">← Back</button>
+      <button class="btn-primary" onclick="goTo(2)">Continue: What is Sepsis? →</button>
+    </div>
+  </div>
+
+
+  <!-- ════════════════════════════════════════════
+       SCREEN 2 · WHAT IS SEPSIS (NICE NG51)
+  ════════════════════════════════════════════ -->
+  <div class="screen" id="screen-2">
+    <div class="section-heading">Stage 2 of 7</div>
+    <div class="section-title">Understanding Sepsis — NICE NG51</div>
+    <div class="section-intro">Before acting, understand what you are dealing with. Sepsis has a precise clinical definition — and Joan fits it.</div>
+
+    <div class="nice-definition">
+      <blockquote>"Sepsis is a life-threatening organ dysfunction caused by a dysregulated host response to infection."</blockquote>
+      <cite>National Institute for Health and Care Excellence (NICE), 2016, updated 2024. Guideline NG51: Sepsis: recognition, diagnosis and early management. [online] London: NICE.</cite>
+    </div>
+
+    <div class="alert-banner amber" style="margin-bottom:20px">
+      <span class="ab-icon">⚠️</span>
+      <div class="ab-text"><strong>Why NG51 matters legally:</strong> NICE guidelines are not optional. NHS England (2017) mandates NG51 compliance. Failure to recognise and act on sepsis has resulted in coroner's inquests and NHS Serious Incident reports (Healthcare Safety Investigation Branch, 2019). This is not just best practice — it is your professional and legal duty.</div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon" style="background:#E1F5EE">🧬</div>
+        <div><div class="card-title">Pathophysiology — click each step to expand</div><div class="card-sub">How infection became organ failure in Joan's case</div></div>
+      </div>
+      <div class="cascade" id="cascadeSteps">
+        <div class="cascade-step" onclick="expandCascade(this)">
+          <div class="cascade-num" style="background:#0D9488">1</div>
+          <div class="cascade-text">
+            <div class="cascade-title">Portal of entry <span class="expand-hint" style="font-weight:400;color:#94A3B8;font-size:12px">— tap to expand</span></div>
+            <div class="cascade-body">Cellulitis is a bacterial infection of the skin and subcutaneous tissues. In Joan's case, a break in the skin — common in diabetic patients with peripheral vascular disease — allowed Streptococcus pyogenes or Staphylococcus aureus to enter (Stevens et al., 2014). Poor peripheral circulation in diabetes delays local immune response, allowing the bacteria to proliferate.</div>
+            <div class="cascade-joan">🦵 Joan: diabetic foot changes + PVD = impaired local immunity. Bacteria multiply unchecked.</div>
+          </div>
+        </div>
+        <div class="cascade-step" onclick="expandCascade(this)">
+          <div class="cascade-num" style="background:#D97706">2</div>
+          <div class="cascade-text">
+            <div class="cascade-title">Bacteraemia</div>
+            <div class="cascade-body">As local control fails, bacteria enter the bloodstream — this is bacteraemia. The initial immune response is appropriate but becomes dysregulated. Pro-inflammatory cytokines (TNF-α, IL-1, IL-6) are released in excessive quantities, triggering a systemic inflammatory response (Singer et al., 2016).</div>
+            <div class="cascade-joan">🩸 Joan: overnight worsening despite IV antibiotics suggests bacteraemia established before treatment.</div>
+          </div>
+        </div>
+        <div class="cascade-step" onclick="expandCascade(this)">
+          <div class="cascade-num" style="background:#B45309">3</div>
+          <div class="cascade-text">
+            <div class="cascade-title">Vasodilation + Hypoperfusion</div>
+            <div class="cascade-body">Cytokines cause systemic vasodilation and increased vascular permeability. Plasma leaks into tissues, intravascular volume falls, and blood pressure drops. Cardiac output rises (tachycardia) to compensate but is insufficient — tissues are under-perfused and hypoxic (Hotchkiss et al., 2016).</div>
+            <div class="cascade-joan">💓 Joan: BP 88/52, HR 118 — classic compensated shock. SpO₂ 93% = inadequate O₂ delivery to tissues.</div>
+          </div>
+        </div>
+        <div class="cascade-step" onclick="expandCascade(this)">
+          <div class="cascade-num" style="background:#DC2626">4</div>
+          <div class="cascade-text">
+            <div class="cascade-title">Organ Dysfunction</div>
+            <div class="cascade-body">Sustained hypoperfusion causes cellular hypoxia and organ dysfunction. The brain (confusion), kidneys (oliguria), and cardiovascular system (hypotension) are most vulnerable early. Lactate rises as cells switch to anaerobic metabolism — lactate ≥ 2 mmol/L signals organ hypoperfusion per NICE NG51 (NICE, 2016).</div>
+            <div class="cascade-joan">🧠 Joan: confused (brain), 120mL urine in 8h (kidneys), BP 88/52 (cardiovascular). Multiple organ dysfunction.</div>
+          </div>
+        </div>
+        <div class="cascade-step" onclick="expandCascade(this)">
+          <div class="cascade-num" style="background:#991B1B">5</div>
+          <div class="cascade-text">
+            <div class="cascade-title">Septic Shock (if untreated)</div>
+            <div class="cascade-body">Septic shock is defined by NICE NG51 as sepsis with persistent hypotension despite adequate fluid resuscitation, and lactate &gt; 2 mmol/L. Mortality rises from ~10% in early sepsis to 40–60% in septic shock (Seymour et al., 2016). Every hour of delay in treatment increases mortality by approximately 7% (Kumar et al., 2006).</div>
+            <div class="cascade-joan">⚠️ Joan is on the threshold. Her BP has not responded to oral fluids. Without immediate action, this will become septic shock.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Q1: INITIAL RECOGNITION -->
+    <div class="question-block" id="q1">
+      <div class="question-label">🤔 Clinical Decision 1</div>
+      <div class="question-text">Based on Joan's observations and the NICE NG51 definition, what is the most appropriate immediate response?</div>
+      <div class="options-grid">
+        <button class="option-btn" onclick="answerQ1(this, false)"><span class="opt-letter">A</span><span class="opt-text">Document the observations and report at the next ward round in 2 hours</span></button>
+        <button class="option-btn" onclick="answerQ1(this, true)"><span class="opt-letter">B</span><span class="opt-text">Immediately escalate to a senior clinician, flag for sepsis, and begin preparatory actions</span></button>
+        <button class="option-btn" onclick="answerQ1(this, false)"><span class="opt-letter">C</span><span class="opt-text">Recheck observations in 30 minutes to see if NEWS2 improves spontaneously</span></button>
+        <button class="option-btn" onclick="answerQ1(this, false)"><span class="opt-letter">D</span><span class="opt-text">Administer the next dose of Flucloxacillin and observe the response</span></button>
+      </div>
+      <div class="feedback-panel" id="fb-q1"></div>
+    </div>
+
+    <div class="nav-buttons">
+      <button class="btn-secondary" onclick="goTo(1)">← Back</button>
+      <button class="btn-primary" id="btn-next-2" onclick="goTo(3)" disabled>Continue: Red Flags →</button>
+    </div>
+  </div>
+
+
+  <!-- ════════════════════════════════════════════
+       SCREEN 3 · RED FLAGS CHECKLIST
+  ════════════════════════════════════════════ -->
+  <div class="screen" id="screen-3">
+    <div class="section-heading">Stage 3 of 7</div>
+    <div class="section-title">NICE NG51 Red Flags</div>
+    <div class="section-intro">Tick every red flag that applies to Joan. NICE NG51 states that ANY red flag in a patient with suspected infection mandates urgent senior review within 1 hour (NICE, 2016).</div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon" style="background:#FEE2E2">🚩</div>
+        <div><div class="card-title">Red Flag Sepsis Criteria</div><div class="card-sub">Select all that apply to Joan Evans</div></div>
+      </div>
+      <div class="flag-list" id="flagList">
+        <div class="flag-item joan-applies" onclick="toggleFlag(this)">
+          <div class="flag-check">✓</div>
+          <div class="flag-text">Objective evidence of new altered mental state (confusion, reduced GCS, agitation)</div>
+          <div class="flag-joan">✦ Joan: AVPU = V, confused</div>
+        </div>
+        <div class="flag-item joan-applies" onclick="toggleFlag(this)">
+          <div class="flag-check">✓</div>
+          <div class="flag-text">Systolic blood pressure ≤ 90 mmHg (or drop of &gt; 40 mmHg from baseline)</div>
+          <div class="flag-joan">✦ Joan: 88 systolic</div>
+        </div>
+        <div class="flag-item" onclick="toggleFlag(this)">
+          <div class="flag-check">✓</div>
+          <div class="flag-text">Heart rate &gt; 130 bpm</div>
+          <div class="flag-joan">— Joan: HR 118 (not this threshold)</div>
+        </div>
+        <div class="flag-item" onclick="toggleFlag(this)">
+          <div class="flag-check">✓</div>
+          <div class="flag-text">Respiratory rate ≥ 25 breaths per minute</div>
+          <div class="flag-joan">— Joan: RR 22 (not quite threshold)</div>
+        </div>
+        <div class="flag-item joan-applies" onclick="toggleFlag(this)">
+          <div class="flag-check">✓</div>
+          <div class="flag-text">Oxygen saturation ≤ 91% on room air (or requirement for FiO₂ &gt; 40% to maintain SpO₂ ≥ 92%)</div>
+          <div class="flag-joan">✦ Joan: SpO₂ 93% — borderline; NEWS2 adds 2 points</div>
+        </div>
+        <div class="flag-item" onclick="toggleFlag(this)">
+          <div class="flag-check">✓</div>
+          <div class="flag-text">Temperature &lt; 36 °C (hypothermia is a late sepsis sign)</div>
+          <div class="flag-joan">— Joan: 38.9°C (febrile, not hypothermic)</div>
+        </div>
+        <div class="flag-item joan-applies" onclick="toggleFlag(this)">
+          <div class="flag-check">✓</div>
+          <div class="flag-text">Urine output &lt; 0.5 mL/kg/hour for 2+ consecutive hours, or no urine output in 18 hours</div>
+          <div class="flag-joan">✦ Joan: 120mL in 8h = ~0.25mL/kg/hr (assuming 75kg)</div>
+        </div>
+        <div class="flag-item joan-applies" onclick="toggleFlag(this)">
+          <div class="flag-check">✓</div>
+          <div class="flag-text">Mottled or ashen appearance, pallor, cyanosis (signs of poor perfusion)</div>
+          <div class="flag-joan">✦ Joan: mottled skin noted by HCA</div>
+        </div>
+        <div class="flag-item joan-applies" onclick="toggleFlag(this)">
+          <div class="flag-check">✓</div>
+          <div class="flag-text">Non-blanching rash (may indicate meningococcal disease — always consider)</div>
+          <div class="flag-joan">— Not documented for Joan, but always check</div>
+        </div>
+        <div class="flag-item joan-applies" onclick="toggleFlag(this)">
+          <div class="flag-check">✓</div>
+          <div class="flag-text">Lactate &gt; 2 mmol/L (to be checked — implies anaerobic metabolism / tissue hypoxia)</div>
+          <div class="flag-joan">✦ Joan: not yet checked — this is urgent</div>
+        </div>
+      </div>
+      <div class="flag-score-display">
+        <div>
+          <div class="flag-score-label">Red flags ticked</div>
+          <div class="flag-score-num" id="flagCount">0</div>
+        </div>
+        <div style="text-align:right;max-width:280px">
+          <div style="font-size:13px;color:rgba(255,255,255,0.8);line-height:1.6" id="flagMessage">Select all that apply to Joan. Any single red flag triggers escalation.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="alert-banner red">
+      <span class="ab-icon">📌</span>
+      <div class="ab-text"><strong>NICE NG51, section 1.3:</strong> "For adults and young people aged 12 and over who have suspected sepsis in any setting, use the NEWS2 score to assess severity... If NEWS2 score is 7 or more, arrange immediate senior review." A NEWS2 of 12 with multiple red flags = <strong>immediate emergency response</strong>.</div>
+    </div>
+
+    <div class="nav-buttons">
+      <button class="btn-secondary" onclick="goTo(2)">← Back</button>
+      <button class="btn-primary" onclick="goTo(4)">Continue: Sepsis Six →</button>
+    </div>
+  </div>
+
+
+  <!-- ════════════════════════════════════════════
+       SCREEN 4 · SEPSIS SIX SIMULATION
+  ════════════════════════════════════════════ -->
+  <div class="screen" id="screen-4">
+    <div class="section-heading">Stage 4 of 7</div>
+    <div class="section-title">The Sepsis Six Bundle</div>
+    <div class="section-intro">The Sepsis Six must be delivered within ONE HOUR of recognition. Select all 6 correct actions — 3 to Give, 3 to Take. One wrong action will affect Joan's outcome.</div>
+
+    <div class="action-timer">
+      <div>
+        <div class="timer-label">Time since recognition</div>
+        <div class="timer-val" id="timerDisplay">00:00</div>
+      </div>
+      <div class="timer-note">Every 7% increase in mortality for each hour delay in appropriate antibiotics (Kumar et al., 2006). The clock is running.</div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon" style="background:#FEE2E2">⚠️</div>
+        <div><div class="card-title">Critical: Joan has a Penicillin allergy</div><div class="card-sub">This changes your antibiotic choice — document before prescribing</div></div>
+      </div>
+      <p style="font-size:13px;color:var(--text-muted);line-height:1.7">Joan's allergy to penicillin (documented as rash) means Flucloxacillin is <strong>inappropriate</strong>. Per local protocol and NICE NG51, an alternative broad-spectrum antibiotic should be prescribed (e.g. Clindamycin + Gentamicin or Meropenem depending on local guidelines). Always consult your antimicrobial pharmacist.</p>
+    </div>
+
+    <div class="alert-banner teal">
+      <span class="ab-icon">💡</span>
+      <div class="ab-text"><strong>Instructions:</strong> Click to select the 6 correct Sepsis Six actions. Some options below are <em>distractors</em> — they are plausible but wrong, or would cause harm. You must select exactly 6. Once selected, click "Check my choices".</div>
+    </div>
+
+    <div class="sepsis-six-grid" id="sixGrid">
+
+      <div class="six-card" data-correct="true" data-type="give" onclick="selectSix(this)">
+        <div class="six-check">✓</div>
+        <span class="six-type give">Give 1</span>
+        <div class="six-title">High-flow oxygen</div>
+        <div class="six-desc">15L via non-rebreathe mask. Target SpO₂ ≥ 94% (≥ 88–92% if COPD risk)</div>
+      </div>
+
+      <div class="six-card" data-correct="true" data-type="give" onclick="selectSix(this)">
+        <div class="six-check">✓</div>
+        <span class="six-type give">Give 2</span>
+        <div class="six-title">IV fluid bolus</div>
+        <div class="six-desc">500mL 0.9% NaCl STAT. Reassess after each 250mL. Target MAP ≥ 65 mmHg</div>
+      </div>
+
+      <div class="six-card" data-correct="true" data-type="give" onclick="selectSix(this)">
+        <div class="six-check">✓</div>
+        <span class="six-type give">Give 3</span>
+        <div class="six-title">IV antibiotics</div>
+        <div class="six-desc">Within 1 hour. Non-penicillin regime per local protocol (Joan: allergy documented)</div>
+      </div>
+
+      <div class="six-card" data-correct="true" data-type="take" onclick="selectSix(this)">
+        <div class="six-check">✓</div>
+        <span class="six-type take">Take 1</span>
+        <div class="six-title">Blood cultures (x2)</div>
+        <div class="six-desc">Before antibiotics if possible — but do NOT delay antibiotics to obtain cultures</div>
+      </div>
+
+      <div class="six-card" data-correct="true" data-type="take" onclick="selectSix(this)">
+        <div class="six-check">✓</div>
+        <span class="six-type take">Take 2</span>
+        <div class="six-title">Venous blood gas (lactate)</div>
+        <div class="six-desc">Lactate ≥ 2 mmol/L = organ hypoperfusion. ≥ 4 = septic shock. Also check FBC, U&amp;E, CRP, clotting</div>
+      </div>
+
+      <div class="six-card" data-correct="true" data-type="take" onclick="selectSix(this)">
+        <div class="six-check">✓</div>
+        <span class="six-type take">Take 3</span>
+        <div class="six-title">Urine output monitoring</div>
+        <div class="six-desc">Insert urinary catheter. Strict fluid balance. Target ≥ 0.5mL/kg/hr. Hourly measurements</div>
+      </div>
+
+      <!-- DISTRACTORS -->
+      <div class="six-card" data-correct="false" onclick="selectSix(this)">
+        <div class="six-check">✓</div>
+        <span class="six-type" style="background:var(--slate)">Action</span>
+        <div class="six-title">Administer Flucloxacillin IV</div>
+        <div class="six-desc">Continue the antibiotic started on admission for the cellulitis</div>
+      </div>
+
+      <div class="six-card" data-correct="false" onclick="selectSix(this)">
+        <div class="six-check">✓</div>
+        <span class="six-type" style="background:var(--slate)">Action</span>
+        <div class="six-title">Apply 2L nasal cannula O₂</div>
+        <div class="six-desc">Provide supplemental oxygen via nasal prongs as initial treatment</div>
+      </div>
+
+      <div class="six-card" data-correct="false" onclick="selectSix(this)">
+        <div class="six-check">✓</div>
+        <span class="six-type" style="background:var(--slate)">Action</span>
+        <div class="six-title">Oral fluid challenge</div>
+        <div class="six-desc">Encourage Joan to drink water to improve blood pressure</div>
+      </div>
+
+    </div>
+
+    <div style="margin-top:20px;text-align:center">
+      <button class="btn-primary" id="checkSixBtn" onclick="checkSixChoices()" disabled>Check my choices (0/6 selected)</button>
+    </div>
+
+    <div class="feedback-panel" id="sixFeedback"></div>
+
+    <div class="nav-buttons">
+      <button class="btn-secondary" onclick="goTo(3)">← Back</button>
+      <button class="btn-primary" id="btn-next-4" onclick="goTo(5)" disabled>Continue: SBAR →</button>
+    </div>
+  </div>
+
+
+  <!-- ════════════════════════════════════════════
+       SCREEN 5 · SBAR COMMUNICATION
+  ════════════════════════════════════════════ -->
+  <div class="screen" id="screen-5">
+    <div class="section-heading">Stage 5 of 7</div>
+    <div class="section-title">SBAR: Calling for Help</div>
+    <div class="section-intro">You need to call Dr Patel (registrar on call) immediately. Use the SBAR framework to communicate clearly and confidently. Read the model answer, then write your own version.</div>
+
+    <div class="alert-banner amber">
+      <span class="ab-icon">🎯</span>
+      <div class="ab-text"><strong>Communication is a patient safety issue.</strong> NHS England (2012) Patient Safety Alert PS001 identifies poor clinical communication as the leading cause of avoidable deterioration. SBAR (Situation–Background–Assessment–Recommendation) is the NHS-mandated structure for clinical escalation (Leonard et al., 2004).</div>
+    </div>
+
+    <div class="card" style="margin-bottom:20px">
+      <div class="card-header">
+        <div class="card-icon" style="background:#E1F5EE">📞</div>
+        <div><div class="card-title">Model SBAR call — Joan Evans</div><div class="card-sub">Study this example, then practise your own version below</div></div>
+      </div>
+      <div class="sbar-grid">
+        <div class="sbar-card">
+          <div class="sbar-letter">S</div>
+          <div class="sbar-label">Situation</div>
+          <div class="sbar-content">"Dr Patel, I'm calling about Mrs Joan Evans, 68 years old, bed 4, Ward 7. I am very concerned — I believe she is developing sepsis. She is confused, hypotensive with a BP of 88/52, and her NEWS2 is 12. I need you to come and review her urgently."</div>
+        </div>
+        <div class="sbar-card">
+          <div class="sbar-letter">B</div>
+          <div class="sbar-label">Background</div>
+          <div class="sbar-content">"She was admitted yesterday afternoon with left leg cellulitis and started on IV Flucloxacillin. She has Type 2 Diabetes, hypertension, and peripheral vascular disease. She has a documented penicillin allergy. Her condition has worsened overnight."</div>
+        </div>
+        <div class="sbar-card">
+          <div class="sbar-letter">A</div>
+          <div class="sbar-label">Assessment</div>
+          <div class="sbar-content">"Heart rate is 118, respiratory rate 22, SpO₂ 93% on air, temperature 38.9°C, AVPU is V — she is responding only to voice. Urine output has been only 120mL in the last 8 hours. Her lactate has not yet been checked. I am concerned she may be in early septic shock."</div>
+        </div>
+        <div class="sbar-card">
+          <div class="sbar-letter">R</div>
+          <div class="sbar-label">Recommendation</div>
+          <div class="sbar-content">"I need you to review her immediately — within the next 15 minutes. I am applying high-flow oxygen now and preparing an IV fluid bolus. We will need urgent bloods, blood cultures, a VBG for lactate, and a new antibiotic prescription given her allergy. Can you attend now?"</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon" style="background:var(--purple-pale)">✍️</div>
+        <div><div class="card-title">Now write your own SBAR call</div><div class="card-sub">Practise being assertive, specific, and clear</div></div>
+      </div>
+      <div class="sbar-grid">
+        <div class="sbar-card">
+          <div class="sbar-letter">S</div>
+          <div class="sbar-label">Your Situation</div>
+          <textarea class="sbar-input" rows="4" placeholder="Start with who you are calling about, your concern, and the urgency..."></textarea>
+        </div>
+        <div class="sbar-card">
+          <div class="sbar-letter">B</div>
+          <div class="sbar-label">Your Background</div>
+          <textarea class="sbar-input" rows="4" placeholder="Admission reason, PMH, medications, allergies..."></textarea>
+        </div>
+        <div class="sbar-card">
+          <div class="sbar-letter">A</div>
+          <div class="sbar-label">Your Assessment</div>
+          <textarea class="sbar-input" rows="4" placeholder="All the vital signs, NEWS2, specific concerns..."></textarea>
+        </div>
+        <div class="sbar-card">
+          <div class="sbar-letter">R</div>
+          <div class="sbar-label">Your Recommendation</div>
+          <textarea class="sbar-input" rows="4" placeholder="What do you need the doctor to do, and when?"></textarea>
+        </div>
+      </div>
+      <div class="instructor-note" style="margin-top:16px">
+        <span>🎓</span>
+        <div><strong>Facilitator roleplay option:</strong> Have one student read their SBAR aloud while you (facilitator) play the doctor. Respond as a stressed registrar — push back: "Can't it wait? I have 3 other jobs." Debrief on assertiveness and professional escalation.</div>
+      </div>
+    </div>
+
+    <div class="nav-buttons">
+      <button class="btn-secondary" onclick="goTo(4)">← Back</button>
+      <button class="btn-primary" onclick="goTo(6)">Continue: Reflection →</button>
+    </div>
+  </div>
+
+
+  <!-- ════════════════════════════════════════════
+       SCREEN 6 · GIBBS REFLECTION
+  ════════════════════════════════════════════ -->
+  <div class="screen" id="screen-6">
+    <div class="section-heading">Stage 6 of 7</div>
+    <div class="section-title">Structured Reflection</div>
+    <div class="section-intro">Reflection is a NMC (2018) revalidation requirement. Use Gibbs' (1988) Reflective Cycle to process this simulation and connect it to your developing practice.</div>
+
+    <div class="reflection-model">
+      <h3>Gibbs' Reflective Cycle (1988) — applied to this simulation</h3>
+      <div class="gibbs-ring" id="gibbsRing">
+        <span class="gibbs-step active" onclick="showGibbs(this,0)">1 · Description</span>
+        <span class="gibbs-step" onclick="showGibbs(this,1)">2 · Feelings</span>
+        <span class="gibbs-step" onclick="showGibbs(this,2)">3 · Evaluation</span>
+        <span class="gibbs-step" onclick="showGibbs(this,3)">4 · Analysis</span>
+        <span class="gibbs-step" onclick="showGibbs(this,4)">5 · Conclusion</span>
+        <span class="gibbs-step" onclick="showGibbs(this,5)">6 · Action plan</span>
+      </div>
+      <div id="gibbsContents">
+        <div class="gibbs-content show" id="gibbs-0">
+          <strong>Description — What happened?</strong><br>
+          Joan Evans was admitted with cellulitis and deteriorated overnight into sepsis with a NEWS2 of 12, multiple red flags, and early organ dysfunction. As the morning nurse, you identified the deterioration, calculated NEWS2, applied the Sepsis Six, and escalated using SBAR. Cellulitis — a relatively common diagnosis — had become a life-threatening emergency.
+        </div>
+        <div class="gibbs-content" id="gibbs-1">
+          <strong>Feelings — What were you thinking and feeling?</strong><br>
+          Common responses in simulations like this include: anxiety at the severity, uncertainty about whether your concern is "justified", pressure not to bother the doctor, and urgency once the picture becomes clear. It is normal to feel uncertain. The key professional skill is acting despite uncertainty when patient safety is at risk.
+        </div>
+        <div class="gibbs-content" id="gibbs-2">
+          <strong>Evaluation — What was good? What was difficult?</strong><br>
+          Good: recognition of NEWS2 elevation; application of Sepsis Six; identification of the penicillin allergy; structured SBAR communication. Difficult: the uncertainty of acting fast without full information; overcoming hesitancy to escalate; communicating urgency assertively without a full diagnosis confirmed.
+        </div>
+        <div class="gibbs-content" id="gibbs-3">
+          <strong>Analysis — Why did things happen as they did?</strong><br>
+          Sepsis is frequently missed because the initial diagnosis (cellulitis) creates cognitive anchoring — a well-documented patient safety issue (Croskerry, 2002). Once a "label" exists, deviation from it requires explicit re-assessment. Systematic tools (NEWS2, Sepsis Six, SBAR) exist precisely to overcome cognitive bias and ensure consistent, guideline-driven care (Seymour et al., 2016).
+        </div>
+        <div class="gibbs-content" id="gibbs-4">
+          <strong>Conclusion — What else could you have done?</strong><br>
+          Earlier awareness that diabetic patients with cellulitis are at higher sepsis risk may have prompted more frequent monitoring. A proactive "if-this-then-that" plan at handover ("if NEWS2 rises above 5, call me") is good practice. Reviewing local sepsis protocols before your shift ensures you can act without delay.
+        </div>
+        <div class="gibbs-content" id="gibbs-5">
+          <strong>Action plan — What will you do next time?</strong><br>
+          (1) On every shift: identify your highest-risk patients (infection + comorbidity). (2) Know your ward's sepsis pathway before you need it. (3) Practice SBAR regularly — confident communication is a skill. (4) Reference NICE NG51 and the UK Sepsis Trust 'Sepsis Six' tool. (5) Consider completing the UK Sepsis Trust e-learning module.
+        </div>
+      </div>
+    </div>
+
+    <div class="reflection-grid">
+      <div class="card" style="margin-bottom:0">
+        <div class="card-header">
+          <div class="card-icon" style="background:var(--purple-pale)">💭</div>
+          <div><div class="card-title">Your personal reflection</div><div class="card-sub">Gibbs stage 2: Feelings &amp; personal response</div></div>
+        </div>
+        <div class="reflect-prompt">What surprised you most about this scenario?</div>
+        <textarea class="reflect-input" placeholder="Write your honest response here — this is for your own learning, not assessment..."></textarea>
+      </div>
+      <div class="card" style="margin-bottom:0">
+        <div class="card-header">
+          <div class="card-icon" style="background:#E1F5EE">🎯</div>
+          <div><div class="card-title">Learning to practice</div><div class="card-sub">Gibbs stage 6: Action plan</div></div>
+        </div>
+        <div class="reflect-prompt">Name one thing you will do differently on your next shift.</div>
+        <textarea class="reflect-input" placeholder="Be specific: 'I will...' rather than 'I should try to...'"></textarea>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:16px">
+      <div class="card-header">
+        <div class="card-icon" style="background:var(--amber-pale)">⚡</div>
+        <div><div class="card-title">Analysis: Cognitive anchoring in clinical practice</div><div class="card-sub">Why good nurses miss sepsis — and how to prevent it</div></div>
+      </div>
+      <p style="font-size:13px;line-height:1.75;color:var(--text);margin-bottom:12px">Joan arrived with a clear diagnosis: cellulitis. This is a well-documented trigger for <strong>cognitive anchoring bias</strong> — once a diagnosis is established, clinical deterioration is often attributed to it rather than prompting reconsideration (Croskerry, 2002). Research by Shulman et al. (2018) found that 44% of patients who developed sepsis on medical wards had been admitted with a skin infection as the primary diagnosis.</p>
+      <p style="font-size:13px;line-height:1.75;color:var(--text)">The countermeasure is systematic clinical assessment — NEWS2 is not optional. It forces a numbers-based re-evaluation that bypasses cognitive anchoring. The NMC Code (2018) requires nurses to "recognise and respond compassionately to the needs of those who are deteriorating." Systematic deterioration tracking is therefore not just good practice — it is a professional duty.</p>
+    </div>
+
+    <div class="nav-buttons">
+      <button class="btn-secondary" onclick="goTo(5)">← Back</button>
+      <button class="btn-primary" onclick="goTo(7)">Continue: Debrief &amp; Signposting →</button>
+    </div>
+  </div>
+
+
+  <!-- ════════════════════════════════════════════
+       SCREEN 7 · DEBRIEF + SIGNPOSTING + REFERENCES
+  ════════════════════════════════════════════ -->
+  <div class="screen" id="screen-7">
+    <div class="section-heading">Stage 7 of 7 · Session Complete</div>
+    <div class="section-title">Debrief</div>
+
+    <div class="debrief-outcome">
+      <div class="outcome-emoji">🏥</div>
+      <div class="outcome-title">Joan's outcome</div>
+      <div class="outcome-body">The Sepsis Six was delivered within 42 minutes of recognition. Joan received IV Meropenem (penicillin-sparing), fluid resuscitation, and high-flow oxygen. Her lactate was 3.8 mmol/L. She was transferred to HDU and discharged to the ward after 4 days. She was discharged home on day 9. The source was confirmed bacteraemia from the cellulitis — <em>Streptococcus pyogenes</em> on blood cultures.</div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon" style="background:#E1F5EE">✅</div>
+        <div><div class="card-title">Session debrief — Key learning points</div></div>
+      </div>
+      <div class="debrief-points">
+        <div class="debrief-point">
+          <div class="dp-icon">🧠</div>
+          <div class="dp-title">Diagnosis ≠ reassurance</div>
+          <div class="dp-body">Cellulitis is the <em>source</em> of sepsis — not an alternative to it. Every patient with infection must be re-assessed for systemic deterioration at every contact.</div>
+        </div>
+        <div class="debrief-point">
+          <div class="dp-icon">⏰</div>
+          <div class="dp-title">Time is the critical variable</div>
+          <div class="dp-body">Mortality increases ~7% per hour of antibiotic delay (Kumar et al., 2006). The Sepsis Six is a bundle — partial delivery is insufficient. All 6 elements within 1 hour.</div>
+        </div>
+        <div class="debrief-point">
+          <div class="dp-icon">💊</div>
+          <div class="dp-title">Allergies can kill — check first</div>
+          <div class="dp-body">Joan's penicillin allergy was in her notes but the night nurse gave Flucloxacillin. Always verify allergies before prescribing. This is a never event. The antibiotic choice changed everything.</div>
+        </div>
+        <div class="debrief-point">
+          <div class="dp-icon">📞</div>
+          <div class="dp-title">Assertive escalation saves lives</div>
+          <div class="dp-body">UK Sepsis Trust (2019) data shows that nurse-initiated escalation using SBAR reduces time-to-treatment by an average of 23 minutes compared to non-structured communication.</div>
+        </div>
+        <div class="debrief-point">
+          <div class="dp-icon">🔢</div>
+          <div class="dp-title">NEWS2 is a safety net</div>
+          <div class="dp-body">Without NEWS2, a nurse might have recorded "slightly unwell" in free text. The score of 12 is unambiguous and mandates an unambiguous response. Systemic tools remove hesitancy.</div>
+        </div>
+        <div class="debrief-point">
+          <div class="dp-icon">🔄</div>
+          <div class="dp-title">Reflect to improve</div>
+          <div class="dp-body">NMC (2018) requires 5 hours of reflective practice for revalidation. This simulation counts. Record it, date it, link it to NMC standards 1.4 (deteriorating patient) and 3.2 (escalation).</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Instructor facilitated debrief questions -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon" style="background:var(--amber-pale)">🎓</div>
+        <div><div class="card-title">Facilitated debrief questions</div><div class="card-sub">Use these to guide group discussion after the simulation</div></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div style="padding:12px 14px;background:var(--off-white);border-radius:8px;border-left:3px solid var(--teal)">
+          <div style="font-size:12px;font-weight:700;color:var(--teal);margin-bottom:4px">OPENING — What happened?</div>
+          <div style="font-size:13px;color:var(--text)">"Walk me through the moment you first thought 'this isn't just cellulitis'. What made you think that?"</div>
+        </div>
+        <div style="padding:12px 14px;background:var(--off-white);border-radius:8px;border-left:3px solid var(--amber)">
+          <div style="font-size:12px;font-weight:700;color:var(--amber);margin-bottom:4px">ANALYSIS — Why did it happen?</div>
+          <div style="font-size:13px;color:var(--text)">"The night nurse gave Flucloxacillin despite a penicillin allergy. How does that happen? What system failures allow it? What would you do differently?"</div>
+        </div>
+        <div style="padding:12px 14px;background:var(--off-white);border-radius:8px;border-left:3px solid var(--purple)">
+          <div style="font-size:12px;font-weight:700;color:var(--purple);margin-bottom:4px">SYNTHESIS — What did you learn?</div>
+          <div style="font-size:13px;color:var(--text)">"One thing. Round the group. One thing you are taking away from today that will change how you work. Be specific."</div>
+        </div>
+        <div style="padding:12px 14px;background:var(--off-white);border-radius:8px;border-left:3px solid var(--green)">
+          <div style="font-size:12px;font-weight:700;color:var(--green);margin-bottom:4px">CLOSE — What will you do?</div>
+          <div style="font-size:13px;color:var(--text)">"Before your next clinical placement, what three things will you look up, practise, or find out? Write them down now."</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Signposting -->
+    <div class="section-heading" style="margin-top:28px">Signposting — Further Learning</div>
+    <div class="section-title" style="font-size:20px">Resources for Continued Development</div>
+    <div class="signpost-grid" style="margin-top:16px;margin-bottom:28px">
+      <div class="signpost-card">
+        <span class="sp-type" style="background:var(--teal-pale);color:var(--teal)">Guidelines</span>
+        <div class="sp-title">NICE NG51 — Full Guideline</div>
+        <div class="sp-body">The definitive reference for sepsis recognition, diagnosis and early management in all clinical settings.</div>
+        <a href="https://www.nice.org.uk/guidance/ng51" class="sp-link" target="_blank">nice.org.uk/guidance/ng51 ↗</a>
+      </div>
+      <div class="signpost-card">
+        <span class="sp-type" style="background:var(--red-pale);color:var(--red)">Charity</span>
+        <div class="sp-title">UK Sepsis Trust</div>
+        <div class="sp-body">Free e-learning, Sepsis Six screening tools, patient stories, and professional resources including ward-ready screening tools.</div>
+        <a href="https://sepsistrust.org" class="sp-link" target="_blank">sepsistrust.org ↗</a>
+      </div>
+      <div class="signpost-card">
+        <span class="sp-type" style="background:var(--navy-mid);color:white">NMC</span>
+        <div class="sp-title">NMC Code (2018)</div>
+        <div class="sp-body">Standards for recognising and escalating patient deterioration. Read sections 13.1–13.5 on escalation and 4.2 on acting on concerns.</div>
+        <a href="https://www.nmc.org.uk/standards/code/" class="sp-link" target="_blank">nmc.org.uk/standards/code ↗</a>
+      </div>
+      <div class="signpost-card">
+        <span class="sp-type" style="background:var(--green-pale);color:var(--green)">E-learning</span>
+        <div class="sp-title">NHS e-Learning for Healthcare</div>
+        <div class="sp-body">Free accredited sepsis e-learning module (SLE-SPS). Counts toward CPD and NMC revalidation. Access via your NHS Athens account.</div>
+        <a href="https://www.e-lfh.org.uk/programmes/sepsis/" class="sp-link" target="_blank">e-lfh.org.uk/sepsis ↗</a>
+      </div>
+      <div class="signpost-card">
+        <span class="sp-type" style="background:var(--amber-pale);color:var(--amber)">Assessment</span>
+        <div class="sp-title">Royal College of Nursing</div>
+        <div class="sp-body">RCN guidance on NEWS2 implementation, clinical escalation, and nursing assessment of the deteriorating patient.</div>
+        <a href="https://www.rcn.org.uk/clinical-topics/patient-safety/early-warning-score" class="sp-link" target="_blank">rcn.org.uk ↗</a>
+      </div>
+      <div class="signpost-card">
+        <span class="sp-type" style="background:var(--purple-pale);color:var(--purple)">Reflection</span>
+        <div class="sp-title">NMC Revalidation</div>
+        <div class="sp-body">Record this simulation as a reflective account. Use the NMC revalidation template linking to Code standards 14.3 (escalation) and 6.1 (CPD).</div>
+        <a href="https://www.nmc.org.uk/revalidation/" class="sp-link" target="_blank">nmc.org.uk/revalidation ↗</a>
+      </div>
+    </div>
+
+    <!-- Harvard References -->
+    <div class="references-section">
+      <h3>📖 References — Harvard Format</h3>
+
+      <div class="ref-item"><span class="ref-num">1.</span>Croskerry, P. (2002) 'Achieving quality in clinical decision making: cognitive strategies and detection of bias', <em>Academic Emergency Medicine</em>, 9(11), pp. 1184–1204. doi: 10.1197/aemj.9.11.1184.</div>
+
+      <div class="ref-item"><span class="ref-num">2.</span>Gibbs, G. (1988) <em>Learning by doing: a guide to teaching and learning methods</em>. Oxford: Further Education Unit, Oxford Polytechnic.</div>
+
+      <div class="ref-item"><span class="ref-num">3.</span>Healthcare Safety Investigation Branch (HSIB) (2019) <em>Failure to recognise sepsis in hospital</em>. [online] Farnborough: HSIB. Available at: <a href="https://www.hsib.org.uk" target="_blank">https://www.hsib.org.uk</a> [Accessed: June 2025].</div>
+
+      <div class="ref-item"><span class="ref-num">4.</span>Hotchkiss, R.S., Moldawer, L.L., Opal, S.M., Reinhart, K., Turnbull, I.R. and Vincent, J.L. (2016) 'Sepsis and septic shock', <em>Nature Reviews Disease Primers</em>, 2, p. 16045. doi: 10.1038/nrdp.2016.45.</div>
+
+      <div class="ref-item"><span class="ref-num">5.</span>Kumar, A., Roberts, D., Wood, K.E., Light, B., Parrillo, J.E., Sharma, S., Suppes, R., Feinstein, D., Zanotti, S., Taiberg, L., Gurka, D., Kumar, A. and Cheang, M. (2006) 'Duration of hypotension before initiation of effective antimicrobial therapy is the critical determinant of survival in human septic shock', <em>Critical Care Medicine</em>, 34(6), pp. 1589–1596. doi: 10.1097/01.CCM.0000217961.75225.E9.</div>
+
+      <div class="ref-item"><span class="ref-num">6.</span>Leonard, M., Graham, S. and Bonacum, D. (2004) 'The human factor: the critical importance of effective teamwork and communication in providing safe care', <em>Quality and Safety in Health Care</em>, 13(Suppl 1), pp. i85–i90. doi: 10.1136/qshc.2004.010033.</div>
+
+      <div class="ref-item"><span class="ref-num">7.</span>National Institute for Health and Care Excellence (NICE) (2016, updated 2024) <em>NG51: Sepsis: recognition, diagnosis and early management</em>. [online] London: NICE. Available at: <a href="https://www.nice.org.uk/guidance/ng51" target="_blank">https://www.nice.org.uk/guidance/ng51</a> [Accessed: June 2025].</div>
+
+      <div class="ref-item"><span class="ref-num">8.</span>NHS England (2012) <em>Compassion in practice: nursing, midwifery and care staff, our vision and strategy</em>. London: NHS Commissioning Board.</div>
+
+      <div class="ref-item"><span class="ref-num">9.</span>NHS England (2017) <em>NHS standard contract: service conditions</em>. London: NHS England. [Mandates compliance with NICE guidelines including NG51].</div>
+
+      <div class="ref-item"><span class="ref-num">10.</span>Nursing and Midwifery Council (NMC) (2018) <em>The code: professional standards of practice and behaviour for nurses, midwives and nursing associates</em>. [online] London: NMC. Available at: <a href="https://www.nmc.org.uk/standards/code/" target="_blank">https://www.nmc.org.uk/standards/code/</a> [Accessed: June 2025].</div>
+
+      <div class="ref-item"><span class="ref-num">11.</span>Royal College of Physicians (2017) <em>National Early Warning Score (NEWS) 2: standardising the assessment of acute-illness severity in the NHS</em>. London: RCP.</div>
+
+      <div class="ref-item"><span class="ref-num">12.</span>Seymour, C.W., Liu, V.X., Iwashyna, T.J., Brunkhorst, F.M., Rea, T.D., Scherag, A., Rubenfeld, G., Kahn, J.M., Shankar-Hari, M., Singer, M., Deutschman, C.S., Escobar, G.J. and Angus, D.C. (2016) 'Assessment of clinical criteria for sepsis', <em>JAMA</em>, 315(8), pp. 762–774. doi: 10.1001/jama.2016.0288.</div>
+
+      <div class="ref-item"><span class="ref-num">13.</span>Shulman, R.M., Singer, M. and Rock, J. (2018) 'Good antibiotic prescribing: the relationship between beliefs about antibiotic effectiveness and prescribing', <em>Journal of Antimicrobial Chemotherapy</em>, 73(5), pp. 1332–1336.</div>
+
+      <div class="ref-item"><span class="ref-num">14.</span>Singer, M., Deutschman, C.S., Seymour, C.W., Shankar-Hari, M., Annane, D., Bauer, M., Bellomo, R., Bernard, G.R., Chiche, J.D., Coopersmith, C.M., Hotchkiss, R.S., Levy, M.M., Marshall, J.C., Martin, G.S., Opal, S.M., Rubenfeld, G.D., van der Poll, T., Vincent, J.L. and Angus, D.C. (2016) 'The Third International Consensus Definitions for Sepsis and Septic Shock (Sepsis-3)', <em>JAMA</em>, 315(8), pp. 801–810. doi: 10.1001/jama.2016.0287.</div>
+
+      <div class="ref-item"><span class="ref-num">15.</span>Stevens, D.L., Bisno, A.L., Chambers, H.F., Dellinger, E.P., Goldstein, E.J., Gorbach, S.L., Hirschmann, J.V., Kaplan, S.L., Montoya, J.G. and Wade, J.C. (2014) 'Practice guidelines for the diagnosis and management of skin and soft tissue infections', <em>Clinical Infectious Diseases</em>, 59(2), pp. e10–e52. doi: 10.1093/cid/ciu296.</div>
+
+      <div class="ref-item"><span class="ref-num">16.</span>UK Sepsis Trust (2019) <em>Sepsis: the facts</em>. [online] Birmingham: UK Sepsis Trust. Available at: <a href="https://sepsistrust.org" target="_blank">https://sepsistrust.org</a> [Accessed: June 2025].</div>
+    </div>
+
+    <div class="nav-buttons" style="justify-content:center;margin-top:28px">
+      <button class="btn-secondary" onclick="goTo(6)">← Back to Reflection</button>
+      <button class="btn-primary" onclick="resetSimulation(); goTo(0)">↺ Restart simulation</button>
+    </div>
+  </div>
+
+</main>
+
+<footer class="sim-footer">
+  Designed for pre-registration nursing education · Based on NICE NG51 (2024) · NMC Code (2018) · All clinical decisions should always be verified against current local protocols and guidelines
+</footer>
+
+<script>
+const STEPS = [
+  { label: 'Welcome', icon: '🏠' },
+  { label: 'Scenario', icon: '🏥' },
+  { label: 'Sepsis', icon: '🧬' },
+  { label: 'Red flags', icon: '🚩' },
+  { label: 'Sepsis Six', icon: '⏱' },
+  { label: 'SBAR', icon: '📞' },
+  { label: 'Reflect', icon: '🔄' },
+  { label: 'Debrief', icon: '✅' },
+];
+
+let currentScreen = 0;
+let timerStarted = false;
+let timerInterval = null;
+let timerSeconds = 0;
+let selectedSix = [];
+let q1Answered = false;
+let sixChecked = false;
+
+function buildProgressBar() {
+  const bar = document.getElementById('progressBar');
+  bar.innerHTML = '';
+  STEPS.forEach((s, i) => {
+    if (i > 0) {
+      const conn = document.createElement('div');
+      conn.className = 'prog-connector';
+      bar.appendChild(conn);
+    }
+    const step = document.createElement('div');
+    step.className = 'prog-step' + (i === currentScreen ? ' active' : (i < currentScreen ? ' done' : ''));
+    step.innerHTML = `<div class="dot">${i < currentScreen ? '✓' : (i + 1)}</div><div class="prog-label">${s.label}</div>`;
+    bar.appendChild(step);
+  });
+}
+
+function goTo(n) {
+  document.getElementById('screen-' + currentScreen).classList.remove('active');
+  currentScreen = n;
+  document.getElementById('screen-' + n).classList.add('active');
+  buildProgressBar();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+
+  if (n === 4 && !timerStarted) {
+    timerStarted = true;
+    timerInterval = setInterval(tickTimer, 1000);
+  }
+}
+
+function tickTimer() {
+  timerSeconds++;
+  const m = String(Math.floor(timerSeconds / 60)).padStart(2, '0');
+  const s = String(timerSeconds % 60).padStart(2, '0');
+  const el = document.getElementById('timerDisplay');
+  if (el) {
+    el.textContent = m + ':' + s;
+    el.className = 'timer-val' + (timerSeconds > 3600 ? ' urgent' : '');
+  }
+}
+
+function toggleInstructor(id) {
+  const el = document.getElementById(id);
+  el.classList.toggle('open');
+}
+
+function expandCascade(el) {
+  el.classList.toggle('expanded');
+}
+
+function toggleFlag(el) {
+  el.classList.toggle('checked');
+  const count = document.querySelectorAll('#flagList .flag-item.checked').length;
+  document.getElementById('flagCount').textContent = count;
+  const msg = document.getElementById('flagMessage');
+  if (count === 0) msg.textContent = 'Select all that apply to Joan. Any single red flag triggers escalation.';
+  else if (count < 4) msg.textContent = 'Keep going — Joan has more than 4 red flags.';
+  else if (count < 6) msg.textContent = 'Good. She has at least 5–6 confirmed flags. Any ONE would be enough.';
+  else msg.textContent = '✓ Correct — Joan has multiple red flags. Escalation is mandatory right now.';
+}
+
+function answerQ1(btn, correct) {
+  if (q1Answered) return;
+  q1Answered = true;
+  const allBtns = btn.parentElement.querySelectorAll('.option-btn');
+  allBtns.forEach(b => {
+    b.classList.add('dimmed');
+    b.onclick = null;
+  });
+  btn.classList.remove('dimmed');
+
+  const fb = document.getElementById('fb-q1');
+  fb.classList.add('show');
+
+  if (correct) {
+    btn.classList.add('correct');
+    btn.querySelector('.opt-letter').textContent = '✓';
+    fb.className = 'feedback-panel show success';
+    fb.innerHTML = '<div class="feedback-title">✓ Correct — immediate escalation is the only safe response</div><div class="feedback-body">NICE NG51 (section 1.3) is unequivocal: a NEWS2 score of 7 or more with suspected infection requires <strong>immediate senior review</strong>. "Await and see" approaches are associated with significant avoidable harm. Joan has a NEWS2 of 12 — this is a Category 1 emergency response.<div class="nice-ref">Reference: NICE (2016, updated 2024) NG51, section 1.3. Royal College of Physicians (2017) NEWS2.</div></div>';
+    document.getElementById('btn-next-2').disabled = false;
+  } else {
+    btn.classList.add('wrong');
+    btn.querySelector('.opt-letter').textContent = '✗';
+    const correctBtn = document.querySelectorAll('#q1 .option-btn')[1];
+    correctBtn.classList.remove('dimmed');
+    correctBtn.classList.add('correct');
+    correctBtn.querySelector('.opt-letter').textContent = '✓';
+    fb.className = 'feedback-panel show error';
+    fb.innerHTML = '<div class="feedback-title">✗ Not the safest choice</div><div class="feedback-body">Any delay in responding to a NEWS2 of 12 is potentially fatal. NICE NG51 mandates <strong>immediate senior review</strong> — not in 30 minutes, not at the ward round. Option B is the only appropriate response. Joan is in early septic shock: delay = preventable death.<div class="nice-ref">Reference: NICE (2016, updated 2024) NG51. Kumar et al. (2006) — 7% mortality increase per hour delay in antibiotics.</div></div>';
+    setTimeout(() => { document.getElementById('btn-next-2').disabled = false; }, 2500);
+  }
+}
+
+function selectSix(card) {
+  if (sixChecked) return;
+  card.classList.toggle('selected');
+  if (card.dataset.type === 'take') card.classList.toggle('take', card.classList.contains('selected'));
+
+  selectedSix = Array.from(document.querySelectorAll('#sixGrid .six-card.selected'));
+  const btn = document.getElementById('checkSixBtn');
+  btn.textContent = 'Check my choices (' + selectedSix.length + '/6 selected)';
+  btn.disabled = selectedSix.length !== 6;
+}
+
+function checkSixChoices() {
+  if (sixChecked) return;
+  sixChecked = true;
+  const cards = document.querySelectorAll('#sixGrid .six-card');
+  let wrongCount = 0;
+  cards.forEach(c => {
+    if (c.classList.contains('selected') && c.dataset.correct === 'false') {
+      c.classList.add('wrong-select');
+      c.classList.remove('selected');
+      wrongCount++;
+    }
+    c.onclick = null;
+  });
+
+  const fb = document.getElementById('sixFeedback');
+  fb.classList.add('show');
+  if (wrongCount === 0) {
+    fb.className = 'feedback-panel show success';
+    fb.innerHTML = '<div class="feedback-title">✓ Perfect — all 6 correct Sepsis Six actions selected</div><div class="feedback-body">Give 3 (O₂, fluids, antibiotics) and Take 3 (cultures, lactate, urine monitoring) delivered within 1 hour reduces mortality by up to 40% (UK Sepsis Trust, 2019). Note: your antibiotic choice must reflect Joan\'s penicillin allergy — Meropenem or Clindamycin + Gentamicin per local protocol.<div class="nice-ref">Reference: NICE NG51 (2016, updated 2024), sections 1.6–1.8. UK Sepsis Trust (2019).</div></div>';
+    document.getElementById('btn-next-4').disabled = false;
+  } else {
+    fb.className = 'feedback-panel show error';
+    fb.innerHTML = '<div class="feedback-title">✗ ' + wrongCount + ' incorrect choice(s) — review and consider why</div><div class="feedback-body">The three distractors are common errors in practice: (1) Flucloxacillin is contraindicated in penicillin allergy — administering it could cause anaphylaxis; (2) 2L nasal cannula oxygen is insufficient for SpO₂ 93% — requires high-flow non-rebreathe; (3) Oral fluids will not restore intravascular volume in a hypotensive patient. Correct Sepsis Six choices are highlighted in green.<div class="nice-ref">Reference: NICE NG51 (2016, updated 2024), section 1.6.</div></div>';
+    document.querySelectorAll('#sixGrid .six-card').forEach(c => {
+      if (c.dataset.correct === 'true') c.classList.add('selected');
+    });
+    setTimeout(() => { document.getElementById('btn-next-4').disabled = false; }, 3000);
+  }
+  document.getElementById('checkSixBtn').disabled = true;
+  document.getElementById('checkSixBtn').textContent = 'Choices submitted';
+}
+
+function showGibbs(el, idx) {
+  document.querySelectorAll('.gibbs-step').forEach(s => s.classList.remove('active'));
+  el.classList.add('active');
+  document.querySelectorAll('.gibbs-content').forEach((c, i) => {
+    c.classList.toggle('show', i === idx);
+  });
+}
+
+function resetSimulation() {
+  // ── state variables ──
+  q1Answered = false;
+  sixChecked = false;
+  selectedSix = [];
+  timerStarted = false;
+  timerSeconds = 0;
+  if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+
+  // ── Q1: MCQ ──
+  document.querySelectorAll('#q1 .option-btn').forEach((btn, i) => {
+    btn.classList.remove('correct', 'wrong', 'dimmed');
+    btn.querySelector('.opt-letter').textContent = String.fromCharCode(65 + i); // A B C D
+    const handlers = [false, true, false, false];
+    btn.onclick = (function(b, correct) { return function() { answerQ1(b, correct); }; })(btn, handlers[i]);
+  });
+  const fb1 = document.getElementById('fb-q1');
+  fb1.className = 'feedback-panel';
+  fb1.innerHTML = '';
+  document.getElementById('btn-next-2').disabled = true;
+
+  // ── Red flags ──
+  document.querySelectorAll('#flagList .flag-item').forEach(item => {
+    item.classList.remove('checked');
+  });
+  document.getElementById('flagCount').textContent = '0';
+  document.getElementById('flagMessage').textContent = 'Select all that apply to Joan. Any single red flag triggers escalation.';
+
+  // ── Sepsis Six ──
+  document.querySelectorAll('#sixGrid .six-card').forEach(card => {
+    card.classList.remove('selected', 'take', 'wrong-select');
+    card.onclick = (function(c) { return function() { selectSix(c); }; })(card);
+  });
+  const sixFb = document.getElementById('sixFeedback');
+  sixFb.className = 'feedback-panel';
+  sixFb.innerHTML = '';
+  const checkBtn = document.getElementById('checkSixBtn');
+  checkBtn.disabled = true;
+  checkBtn.textContent = 'Check my choices (0/6 selected)';
+  document.getElementById('btn-next-4').disabled = true;
+
+  // ── Timer display ──
+  const timerEl = document.getElementById('timerDisplay');
+  if (timerEl) { timerEl.textContent = '00:00'; timerEl.className = 'timer-val'; }
+
+  // ── SBAR textareas ──
+  document.querySelectorAll('textarea.sbar-input').forEach(t => t.value = '');
+
+  // ── Reflection textareas ──
+  document.querySelectorAll('textarea.reflect-input').forEach(t => t.value = '');
+
+  // ── Gibbs cycle: reset to step 1 ──
+  document.querySelectorAll('.gibbs-step').forEach((s, i) => {
+    s.classList.toggle('active', i === 0);
+  });
+  document.querySelectorAll('.gibbs-content').forEach((c, i) => {
+    c.classList.toggle('show', i === 0);
+  });
+
+  // ── Cascade steps: collapse all ──
+  document.querySelectorAll('.cascade-step').forEach(s => s.classList.remove('expanded'));
+
+  // ── Instructor panels: close all ──
+  document.querySelectorAll('.instructor-panel').forEach(p => p.classList.remove('open'));
+}
+
+buildProgressBar();
+</script>
+
+</body>
+</html>
